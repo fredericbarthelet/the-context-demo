@@ -1,7 +1,8 @@
 packages:
-  - "web"
-  - "server"
-sharedWorkspaceLockfile: false
+  - web
+  - server
 
 catalog:
-  skybridge: ^0.11.1
+  skybridge: 0.12.0
+
+sharedWorkspaceLockfile: false

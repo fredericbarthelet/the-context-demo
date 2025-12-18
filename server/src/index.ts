@@ -5,10 +5,23 @@ import type { ViteDevServer } from "vite";
 import { env } from "./env.js";
 import { mcp } from "./middleware.js";
 import server from "./server.js";
+import { getCapitalByCountryCode } from "./capitals.js";
 
 const app = express() as Express & { vite: ViteDevServer };
 
 app.use(express.json());
+
+// API endpoint for fetching capital details on demand
+app.get("/api/capital/:cca2", async (req, res) => {
+  try {
+    const capital = await getCapitalByCountryCode(req.params.cca2);
+    res.json(capital);
+  } catch (error) {
+    res.status(404).json({
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
 
 app.use(mcp(server));
 

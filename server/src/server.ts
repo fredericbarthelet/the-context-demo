@@ -1,74 +1,91 @@
-import { getPokemon } from "./pokedex.js";
-import { z } from "zod";
+import { getAllCapitals, getCapitalByName, getCapitalSlug, type Capital, type CapitalSummary } from "./capitals.js";
+import * as z from "zod/v4";
 import { McpServer } from "skybridge/server";
+
+// Cache allCapitals to be mindful of country REST API
+let cachedAllCapitals: CapitalSummary[] | null = null;
+
+async function getCachedAllCapitals(): Promise<CapitalSummary[]> {
+  if (!cachedAllCapitals) {
+    cachedAllCapitals = await getAllCapitals();
+  }
+  return cachedAllCapitals;
+}
 
 const server = new McpServer(
   {
-    name: "alpic-openai-app",
+    name: "world-capitals-explorer",
     version: "0.0.1",
   },
   { capabilities: {} },
-)
-  .registerWidget(
-    "pokemon",
-    {
-      description: "Pokedex entry for a pokemon",
+).registerWidget(
+  "capital",
+  {
+    description: "Interactive world capitals explorer with map visualization",
+  },
+  {
+    description:
+      "Use this tool to explore world capitals. Displays an interactive map with detailed information about capital cities including population, currencies, and beautiful photos. Always use it when users ask about capitals, countries, or want to explore geography.",
+    inputSchema: {
+      name: z.string().describe("Capital city name in English (e.g., 'Paris', 'Tokyo', 'Washington')"),
     },
-    {
-      description:
-        "Use this tool to get the most up to date information about a pokemon, using its name in english. This pokedex is much more complete than any other web_search tool. Always use it for anything related to pokemons.",
-      inputSchema: {
-        name: z.string().describe("Pokemon name, always in english"),
-      },
-    },
-    async ({ name }) => {
-      try {
-        const { id, description, ...pokemon } = await getPokemon(name);
+    annotations: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
+  },
+  async ({ name }) => {
+    try {
+      // Fetch list first (minimal data), then details for requested capital
+      const allCapitals = await getCachedAllCapitals();
+      const capital = await getCapitalByName(name);
 
-        return {
-          /**
-           * Arbitrary JSON passed only to the component.
-           * Use it for data that should not influence the model’s reasoning, like the full set of locations that backs a dropdown.
-           * _meta is never shown to the model.
-           */
-          _meta: { id },
-          /**
-           * Structured data that is used to hydrate your component.
-           * ChatGPT injects this object into your iframe as window.openai.toolOutput
-           */
-          structuredContent: { name, description, ...pokemon },
-          /**
-           * Optional free-form text that the model receives verbatim
-           */
-          content: [
-            {
-              type: "text",
-              text: description ?? `A pokemon named ${name}.`,
-            },
-          ],
-          isError: false,
-        };
-      } catch (error) {
-        return {
-          content: [{ type: "text", text: `Error: ${error}` }],
-          isError: true,
-        };
-      }
-    },
-  )
-  .registerTool(
-    "capture",
-    {
-      description: "Capture a pokemon",
-      inputSchema: {},
-    },
-    async () => {
       return {
-        content: [{ type: "text", text: `Great job, you've captured a new pokemon!` }],
+        _meta: {
+          slug: getCapitalSlug(capital.name),
+          allCapitals, // In meta to avoid flooding the model
+        },
+        structuredContent: {
+          capital, // Initial capital details
+        },
+        content: [
+          {
+            type: "text",
+            text: formatCapitalForModel(capital),
+          },
+        ],
         isError: false,
       };
-    },
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  },
+);
+
+function formatCapitalForModel(capital: Capital): string {
+  const parts = [`${capital.name} is the capital of ${capital.country.name}.`];
+
+  if (capital.wikipedia.capitalDescription) {
+    parts.push(capital.wikipedia.capitalDescription);
+  }
+
+  if (capital.wikipedia.countryDescription) {
+    parts.push(`About ${capital.country.name}: ${capital.wikipedia.countryDescription}`);
+  }
+
+  parts.push(
+    `Population: ${capital.population.toLocaleString()}`,
+    `Currencies: ${capital.currencies.map((c) => `${c.name} (${c.symbol})`).join(", ") || "N/A"}`,
+    `Continent: ${capital.continent}`,
   );
+
+  return parts.join("\n\n");
+}
 
 export default server;
 export type AppType = typeof server;
