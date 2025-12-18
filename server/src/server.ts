@@ -30,6 +30,9 @@ const server = new McpServer(
       name: z.string().describe("Capital city name in English (e.g., 'Paris', 'Tokyo', 'Washington')"),
     },
     annotations: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
+    _meta: {
+      "openai/widgetAccessible": true,
+    },
   },
   async ({ name }) => {
     try {

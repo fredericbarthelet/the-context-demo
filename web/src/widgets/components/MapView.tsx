@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import Map, { Marker, NavigationControl } from "react-map-gl";
 import type { MapRef } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -23,18 +23,9 @@ type MapViewProps = {
   zoom: number;
   onCapitalClick: (capitalName: string) => void;
   onMapClick: () => void;
-  onMoveEnd: (center: { lat: number; lng: number }) => void;
 };
 
-export function MapView({
-  capitals,
-  selectedCapital,
-  center,
-  zoom,
-  onCapitalClick,
-  onMapClick,
-  onMoveEnd,
-}: MapViewProps) {
+export function MapView({ capitals, selectedCapital, center, zoom, onCapitalClick, onMapClick }: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
 
   // Fly to center when it changes
@@ -48,13 +39,6 @@ export function MapView({
     }
   }, [center.lat, center.lng, zoom]);
 
-  const handleMoveEnd = useCallback(() => {
-    if (mapRef.current) {
-      const mapCenter = mapRef.current.getCenter();
-      onMoveEnd({ lat: mapCenter.lat, lng: mapCenter.lng });
-    }
-  }, [onMoveEnd]);
-
   const theme = useTheme();
 
   return (
@@ -62,27 +46,28 @@ export function MapView({
       ref={mapRef}
       mapboxAccessToken={MAPBOX_TOKEN}
       initialViewState={{
-        longitude: center.lng || 0,
-        latitude: center.lat || 0,
+        longitude: center.lng,
+        latitude: center.lat,
         zoom: zoom,
       }}
       style={{ width: "100%", height: "100%" }}
       mapStyle={`mapbox://styles/mapbox/${theme}-v11`}
       onClick={onMapClick}
-      onMoveEnd={handleMoveEnd}
       attributionControl={false}
     >
       <NavigationControl position="bottom-right" />
 
-      {capitals.slice(0, 40).map((capital) => {
+      {capitals.map((capital) => {
         const isSelected = selectedCapital?.toLowerCase() === capital.name.toLowerCase();
-        console.log("capital", capital);
+        if (isNaN(capital.coordinates.lng) || isNaN(capital.coordinates.lat)) {
+          return;
+        }
 
         return (
           <Marker
             key={`${capital.cca2}-${capital.name}`}
-            longitude={capital.coordinates.lng || 0}
-            latitude={capital.coordinates.lat || 0}
+            longitude={capital.coordinates.lng}
+            latitude={capital.coordinates.lat}
             anchor="center"
             onClick={(e) => {
               e.originalEvent.stopPropagation();
@@ -119,13 +104,13 @@ export function MapView({
                 </div>
               </div>
 
-              {/* {isSelected && (
+              {isSelected && (
                 <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap">
                   <span className="px-2 py-0.5 bg-slate-900/90 text-amber-400 text-xs font-medium rounded-full">
                     {capital.name}
                   </span>
                 </div>
-              )} */}
+              )}
             </div>
           </Marker>
         );

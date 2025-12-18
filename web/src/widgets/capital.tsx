@@ -1,97 +1,36 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { BrowserRouter, Routes, Route, useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { MapView } from "./components/MapView";
 import { CapitalDetail } from "./components/CapitalDetail";
 import { NearbyList } from "./components/NearbyList";
-import { getCapitalForCountry, DEFAULT_CAPITAL } from "@/data/country-to-capital";
 import { mountWidget, useDisplayMode } from "skybridge/web";
 import { useCallTool, useToolInfo } from "../helpers";
 import "@/index.css";
 
-// Full capital details (fetched on demand)
-type Capital = {
-  name: string;
-  country: { name: string; cca2: string; cca3: string };
-  coordinates: { lat: number; lng: number };
-  flag: string;
-  population: number;
-  continent: string;
-  currencies: Array<{ code: string; name: string; symbol: string }>;
-  photos: Array<{
-    url: string;
-    thumbUrl: string;
-    photographer: string;
-    photographerUrl: string;
-  }>;
-  wikipedia: {
-    capitalDescription?: string;
-    countryDescription?: string;
-  };
-};
-
-// Minimal summary for map markers (from initial load)
-type CapitalSummary = {
-  name: string;
-  countryName: string;
-  cca2: string;
-  coordinates: { lat: number; lng: number };
-};
-
-type ToolOutput = {
-  capital: Capital; // Initial capital from tool call
-};
-
-type ToolMeta = {
-  slug: string;
-  allCapitals: CapitalSummary[];
-};
-
-// Get user location from OpenAI meta
-function getUserLocation(): { country?: string; lat?: number; lng?: number } {
-  try {
-    // @ts-expect-error - OpenAI injects this
-    const meta = window.openai?._meta;
-    const userLocation = meta?.["openai/userLocation"];
-
-    if (userLocation) {
-      return {
-        country: userLocation.country,
-        lat: userLocation.latitude,
-        lng: userLocation.longitude,
-      };
-    }
-  } catch {
-    // Ignore errors
-  }
-  return {};
-}
-
 function CapitalExplorer() {
-  const navigate = useNavigate();
-
   const [displayMode, setDisplayMode] = useDisplayMode();
   const isFullscreen = displayMode === "fullscreen";
 
   const { input, output, responseMetadata, isPending } = useToolInfo<"capital">();
-  const paramCapitalName = useParams<{ capitalName: string }>().capitalName;
+  const [selectedCapital, setSelectedCapital] = useState(input.name);
   const allCapitals = responseMetadata?.allCapitals || [];
-  const selectedCapital = paramCapitalName || input.name;
-  const mapCenter = { lat: 0, lng: 0 };
+  const mapCenter = allCapitals.find((capital) => capital.name === selectedCapital)?.coordinates || { lat: 0, lng: 0 };
 
   const { callTool: travelTo, isPending: isTraveling, data } = useCallTool("capital");
   const isLoadingCapital = isTraveling || isPending;
-  const capital = output?.capital || data?.structuredContent.capital;
+  const capital = data?.structuredContent.capital || output?.capital;
 
-  const handleCapitalClick = () => {
-    setDisplayMode("fullscreen");
+  const handleCapitalClick = (capitalName: string) => {
+    setSelectedCapital(capitalName);
+    travelTo({ name: capitalName });
   };
 
   return (
     <div
       className={`
-        relative bg-slate-950 overflow-hidden transition-all duration-500 ease-out
-        ${isFullscreen ? "fixed inset-0 z-50" : "h-[500px] rounded-xl"}
+        bg-slate-950 overflow-hidden transition-all duration-500 ease-out
+        ${isFullscreen ? "fixed inset-0 z-50" : "relative h-[500px] rounded-xl"}
       `}
     >
       {/* Map Container */}
@@ -102,8 +41,7 @@ function CapitalExplorer() {
           center={mapCenter}
           zoom={5}
           onCapitalClick={handleCapitalClick}
-          onMapClick={handleCapitalClick}
-          onMoveEnd={handleCapitalClick}
+          onMapClick={() => setDisplayMode("fullscreen")}
         />
       </div>
 
@@ -126,26 +64,17 @@ function CapitalExplorer() {
       <div
         className={`
           absolute right-0 top-0 bottom-0 w-80 transition-transform duration-500
-          ${isFullscreen && isLoadingCapital ? "translate-x-0" : "translate-x-full"}
+          ${isFullscreen ? "translate-x-0" : "translate-x-full"}
         `}
       >
         {isLoadingCapital ? (
-          <div className="h-full flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
-            <Spinner />
+          <div className="h-full flex flex-col bg-slate-900/95 backdrop-blur-sm overflow-hidden items-center justify-center">
+            <Spinner color="white" />
           </div>
         ) : capital ? (
           <CapitalDetail capital={capital} />
         ) : null}
       </div>
-
-      {/* Initial State Overlay - Shows before first interaction */}
-      {/* {!hasInteracted && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-slate-900/80 backdrop-blur-sm px-6 py-4 rounded-2xl border border-slate-700/50 animate-pulse">
-            <p className="text-slate-300 text-sm">Click anywhere on the map to explore</p>
-          </div>
-        </div>
-      )} */}
 
       {/* Fullscreen Exit Button */}
       {isFullscreen && (
