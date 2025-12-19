@@ -1,5 +1,5 @@
 import { getAllCapitals, getCapitalByName, getCapitalSlug, type Capital, type CapitalSummary } from "./capitals.js";
-import * as z from "zod/v4";
+import * as z from "zod";
 import { McpServer } from "skybridge/server";
 
 // Cache allCapitals to be mindful of country REST API
