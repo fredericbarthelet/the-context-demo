@@ -15,10 +15,12 @@ function CapitalExplorer() {
   const { input, output, responseMetadata, isPending } = useToolInfo<"capital">();
   const [selectedCapital, setSelectedCapital] = useState(input.name);
   const allCapitals = responseMetadata?.allCapitals || [];
-  const mapCenter = allCapitals.find((capital) => capital.name === selectedCapital)?.coordinates || { lat: 0, lng: 0 };
 
   const { callTool: travelTo, isPending: isTraveling, data } = useCallTool("capital");
-  const isLoadingCapital = isTraveling || isPending;
+
+  const isLoadingCapital = isPending || isTraveling;
+  const capitalLight = allCapitals.find((capital) => capital.name === selectedCapital);
+  const mapCenter = capitalLight?.coordinates || { lat: 48, lng: 2 };
   const capital = data?.structuredContent.capital || output?.capital;
 
   const handleCapitalClick = (capitalName: string) => {
@@ -44,8 +46,7 @@ function CapitalExplorer() {
           onMapClick={() => setDisplayMode("fullscreen")}
         />
       </div>
-
-      {/* Left Panel - Nearby Capitals */}
+      Left Panel - Nearby Capitals
       <div
         className={`
           absolute left-0 top-0 bottom-0 w-72 transition-transform duration-500
@@ -59,7 +60,6 @@ function CapitalExplorer() {
           onCapitalSelect={handleCapitalClick}
         />
       </div>
-
       {/* Right Panel - Capital Details */}
       <div
         className={`
@@ -75,7 +75,6 @@ function CapitalExplorer() {
           <CapitalDetail capital={capital} />
         ) : null}
       </div>
-
       {/* Fullscreen Exit Button */}
       {isFullscreen && (
         <button

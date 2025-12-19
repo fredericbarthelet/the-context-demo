@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  Globe,
-  Users,
-  Coins,
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-} from "lucide-react";
+import { Globe, Users, Coins, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 
 type Capital = {
   name: string;
@@ -58,25 +51,26 @@ export function CapitalDetail({ capital }: CapitalDetailProps) {
   return (
     <div
       className="h-full flex flex-col bg-slate-900/95 backdrop-blur-sm overflow-hidden"
-      data-llm={JSON.stringify({
-        capital: capital.name,
-        country: capital.country.name,
-        description: wikipedia.capitalDescription,
-        countryDescription: wikipedia.countryDescription,
-      })}
+      data-llm={
+        "The user is currently viewing the capital detail for " +
+        capital.name +
+        "Disregard all previous information about the capital the user was looking at. Here are additional information about the capital in case he asks for it: " +
+        JSON.stringify({
+          capital: capital.name,
+          country: capital.country.name,
+          description: wikipedia.capitalDescription,
+          countryDescription: wikipedia.countryDescription,
+        })
+      }
     >
       {/* Photo Carousel */}
       {photos.length > 0 && (
-        <div className="relative h-48 flex-shrink-0 group">
-          <img
-            src={photos[currentPhotoIndex].url}
-            alt={capital.name}
-            className="w-full h-full object-cover"
-          />
-          
+        <div className="relative h-48 shrink-0 group">
+          <img src={photos[currentPhotoIndex].url} alt={capital.name} className="w-full h-full object-cover" />
+
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
-          
+          <div className="absolute inset-0 bg-linear-to-t from-slate-900 via-transparent to-transparent" />
+
           {/* Photo navigation */}
           {photos.length > 1 && (
             <>
@@ -92,7 +86,7 @@ export function CapitalDetail({ capital }: CapitalDetailProps) {
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
-              
+
               {/* Dots */}
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                 {photos.map((_, idx) => (
@@ -100,16 +94,14 @@ export function CapitalDetail({ capital }: CapitalDetailProps) {
                     key={idx}
                     onClick={() => setCurrentPhotoIndex(idx)}
                     className={`w-1.5 h-1.5 rounded-full transition-all ${
-                      idx === currentPhotoIndex
-                        ? "bg-amber-400 w-3"
-                        : "bg-white/50 hover:bg-white/80"
+                      idx === currentPhotoIndex ? "bg-amber-400 w-3" : "bg-white/50 hover:bg-white/80"
                     }`}
                   />
                 ))}
               </div>
             </>
           )}
-          
+
           {/* Attribution */}
           <a
             href={photos[currentPhotoIndex].photographerUrl}
@@ -122,7 +114,7 @@ export function CapitalDetail({ capital }: CapitalDetailProps) {
           </a>
         </div>
       )}
-      
+
       {/* Header */}
       <div className="px-4 pt-4 pb-2 flex items-start gap-3">
         <img
@@ -135,23 +127,15 @@ export function CapitalDetail({ capital }: CapitalDetailProps) {
           <p className="text-sm text-slate-400 truncate">{capital.country.name}</p>
         </div>
       </div>
-      
+
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         {/* Key Stats */}
         <div className="grid grid-cols-2 gap-2">
-          <StatCard
-            icon={<Users className="w-4 h-4" />}
-            label="Population"
-            value={formatNumber(capital.population)}
-          />
-          <StatCard
-            icon={<Globe className="w-4 h-4" />}
-            label="Continent"
-            value={capital.continent}
-          />
+          <StatCard icon={<Users className="w-4 h-4" />} label="Population" value={formatNumber(capital.population)} />
+          <StatCard icon={<Globe className="w-4 h-4" />} label="Continent" value={capital.continent} />
         </div>
-        
+
         {/* Currencies */}
         {capital.currencies.length > 0 && (
           <InfoSection icon={<Coins className="w-4 h-4" />} title="Currencies">
@@ -170,24 +154,14 @@ export function CapitalDetail({ capital }: CapitalDetailProps) {
 
         {/* Wikipedia Description */}
         {wikipedia.capitalDescription && (
-          <div className="text-sm text-slate-300 leading-relaxed">
-            {wikipedia.capitalDescription}
-          </div>
+          <div className="text-sm text-slate-300 leading-relaxed">{wikipedia.capitalDescription}</div>
         )}
       </div>
     </div>
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
       <div className="flex items-center gap-1.5 text-slate-500 mb-1">
@@ -199,15 +173,7 @@ function StatCard({
   );
 }
 
-function InfoSection({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
+function InfoSection({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-slate-400">
@@ -218,4 +184,3 @@ function InfoSection({
     </div>
   );
 }
-
